@@ -2,7 +2,7 @@ import 'zone.js/dist/zone';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { bootstrapApplication } from '@angular/platform-browser';
-import { from, map, Observable, switchMap, tap } from 'rxjs';
+import { from, map, Observable, switchMap, tap, first } from 'rxjs';
 
 type User = {
   id: number;
@@ -22,6 +22,7 @@ const UserDetails: UserDetail[] = [];
   standalone: true,
   imports: [CommonModule],
   template: `
+    <p>SwitchMap</p>
     <ul>
     <li *ngFor="let user of users$ | async">{{ user.name }}</li>
     </ul>
@@ -37,14 +38,22 @@ export class App implements OnInit {
         UserDetails.push({ id: index + 1, age: (Math.random() * 70) | 0 });
       });
 
-    this.users$ = this.getUsers().pipe(
-      switchMap((user: User) =>
-        this.getUserDetailsById(user.id).pipe(
-          map((userDetail: UserDetail) => Object.assign(userDetail, user))
-        )
-      ),
-      tap(console.log)
-    );
+    const users = [];
+
+    this.getUsers()
+      .pipe(
+        switchMap((user: User) =>
+          this.getUserDetailsById(user.id).pipe(
+            map((userDetail: UserDetail) => Object.assign(userDetail, user))
+          )
+        ),
+        tap((val) => users.push(val))
+      )
+      .subscribe({
+        complete: () => {
+          this.users$ = from([users]);
+        },
+      });
   }
 
   getUsers(): Observable<User> {
