@@ -30,6 +30,9 @@ const UserDetails: UserDetail[] = [];
 })
 export class App implements OnInit {
   users$: Observable<(User & UserDetail)[]>;
+
+  // ageGroupFilter$: Observable<>;
+
   ngOnInit(): void {
     Array(10)
       .fill(1)
