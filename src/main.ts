@@ -2,7 +2,7 @@ import 'zone.js/dist/zone';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { bootstrapApplication } from '@angular/platform-browser';
-import { from, map, Observable, switchMap, tap, first } from 'rxjs';
+import { from, map, Observable, switchMap, tap, first, of, combineLatest, filter } from 'rxjs';
 
 type User = {
   id: number;
@@ -24,14 +24,15 @@ const UserDetails: UserDetail[] = [];
   template: `
     <p>SwitchMap</p>
     <ul>
-    <li *ngFor="let user of users$ | async">{{ user.name }}</li>
+    <li *ngFor="let user of users$ | async">{{ user.name }} - {{ user.age }}</li>
     </ul>
   `,
 })
 export class App implements OnInit {
   users$: Observable<(User & UserDetail)[]>;
 
-  // ageGroupFilter$: Observable<>;
+  ageGroupFilter$: Observable<{ upper: number, lower: number }> = of({ upper: 60, lower: -1 });
+  nameFilter$: Observable<string> = of('');
 
   ngOnInit(): void {
     Array(10)
@@ -57,6 +58,17 @@ export class App implements OnInit {
           this.users$ = from([users]);
         },
       });
+
+      combineLatest([
+        this.users$,
+        this.ageGroupFilter$,
+        this.nameFilter$
+      ]).pipe(
+        map(([users, ageGroup, nameCharacters]) => {
+          return users.filter((user) => user.age >= ageGroup.lower && user.age <= ageGroup.upper && user.name.toLowerCase().includes(nameCharacters.toLowerCase()));
+        }),
+        tap((users) => { this.users$ = from([users]); })
+      ).subscribe()
   }
 
   getUsers(): Observable<User> {
