@@ -15,6 +15,10 @@ import {
   mergeMap,
   Subject,
   takeUntil,
+  Subscriber,
+  timer,
+  concat,
+  concatWith,
 } from 'rxjs';
 
 type User = {
@@ -94,6 +98,22 @@ export class App implements OnInit, OnDestroy {
         })
       )
       .subscribe();
+
+      const ob1$: Observable<number> = new Observable((subscriber: Subscriber<number>) => {
+        subscriber.next(1);
+        setTimeout(() => {
+          subscriber.next(2);
+          subscriber.complete();
+        }, 3000);
+      });
+
+      const ob2$: Observable<number> = new Observable((subscriber: Subscriber<number>) => {
+        subscriber.next(3);
+        subscriber.complete();
+      });
+
+      ob1$.pipe(concatWith(ob2$), tap(console.log)).subscribe();
+
   }
 
   getUsers(): Observable<User> {
