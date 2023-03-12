@@ -1,8 +1,21 @@
 import 'zone.js/dist/zone';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { bootstrapApplication } from '@angular/platform-browser';
-import { from, map, Observable, switchMap, tap, first, of, combineLatest, filter, mergeMap } from 'rxjs';
+import {
+  from,
+  map,
+  Observable,
+  switchMap,
+  tap,
+  first,
+  of,
+  combineLatest,
+  filter,
+  mergeMap,
+  Subject,
+  takeUntil,
+} from 'rxjs';
 
 type User = {
   id: number;
@@ -22,17 +35,22 @@ const UserDetails: UserDetail[] = [];
   standalone: true,
   imports: [CommonModule],
   template: `
-    <p>SwitchMap, Merge Map, combineLatest</p>
+    <p>SwitchMap, Merge Map, combineLatest and takeUntil</p>
     <ul>
     <li *ngFor="let user of users$ | async">{{ user.name }} - {{ user.age }}</li>
     </ul>
   `,
 })
-export class App implements OnInit {
+export class App implements OnInit, OnDestroy {
   users$: Observable<(User & UserDetail)[]>;
 
-  ageGroupFilter$: Observable<{ upper: number, lower: number }> = of({ upper: Infinity, lower: -1 });
+  ageGroupFilter$: Observable<{ upper: number; lower: number }> = of({
+    upper: Infinity,
+    lower: -1,
+  });
   nameFilter$: Observable<string> = of('');
+
+  destroy$: Subject<number> = new Subject<number>();
 
   ngOnInit(): void {
     Array(10)
@@ -46,6 +64,7 @@ export class App implements OnInit {
 
     this.getUsers()
       .pipe(
+        takeUntil(this.destroy$),
         mergeMap((user: User) =>
           this.getUserDetailsById(user.id).pipe(
             map((userDetail: UserDetail) => Object.assign(userDetail, user))
@@ -59,16 +78,22 @@ export class App implements OnInit {
         },
       });
 
-      combineLatest([
-        this.users$,
-        this.ageGroupFilter$,
-        this.nameFilter$
-      ]).pipe(
+    combineLatest([this.users$, this.ageGroupFilter$, this.nameFilter$])
+      .pipe(
+        takeUntil(this.destroy$),
         map(([users, ageGroup, nameCharacters]) => {
-          return users.filter((user) => user.age >= ageGroup.lower && user.age <= ageGroup.upper && user.name.toLowerCase().includes(nameCharacters.toLowerCase()));
+          return users.filter(
+            (user) =>
+              user.age >= ageGroup.lower &&
+              user.age <= ageGroup.upper &&
+              user.name.toLowerCase().includes(nameCharacters.toLowerCase())
+          );
         }),
-        tap((users) => { this.users$ = from([users]); })
-      ).subscribe()
+        tap((users) => {
+          this.users$ = from([users]);
+        })
+      )
+      .subscribe();
   }
 
   getUsers(): Observable<User> {
@@ -77,6 +102,10 @@ export class App implements OnInit {
 
   getUserDetailsById(id: User['id']): Observable<UserDetail> {
     return from(UserDetails.filter((userDetail) => userDetail.id === id));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next(1);
   }
 }
 
