@@ -6,19 +6,15 @@ import {
   from,
   map,
   Observable,
-  switchMap,
   tap,
-  first,
   of,
   combineLatest,
-  filter,
   mergeMap,
   Subject,
   takeUntil,
   Subscriber,
-  timer,
-  concat,
   concatWith,
+  forkJoin,
 } from 'rxjs';
 
 type User = {
@@ -39,7 +35,7 @@ const UserDetails: UserDetail[] = [];
   standalone: true,
   imports: [CommonModule],
   template: `
-    <p>SwitchMap, Merge Map, combineLatest and takeUntil</p>
+    <p>SwitchMap, Merge Map, combineLatest, takeUntil, concatWith, forkJoin</p>
     <ul>
     <li *ngFor="let user of users$ | async">{{ user.name }} - {{ user.age }}</li>
     </ul>
@@ -113,6 +109,14 @@ export class App implements OnInit, OnDestroy {
       });
 
       ob1$.pipe(concatWith(ob2$), tap(console.log)).subscribe();
+
+      const obForkJoined$ = forkJoin({
+        name: of('User 1', 'User 2'),
+        age: of(24, 26)
+      }).pipe(tap(console.log));
+
+      obForkJoined$.subscribe();
+
 
   }
 
